@@ -12,9 +12,27 @@ class WindowPos:
         return self.y + self.height;
 
     def getCoordsProportionally(self, otherWindowPos, otherCoords):
-        return;
+        propX = self.width / otherWindowPos.width;
+        propY = self.height / otherWindowPos.height;
+        
+        offX = otherCoords.x * propX;
+        offY = otherCoords.y * propY;
+        
+        return Coords(self.x + offX, self.y + offY);
 
 class Coords:
     def __init__(self,x,y):
         self.x = x;
         self.y = y;
+
+class SimpleShootHistory:
+    def __init__(self, stackSize):
+        self.stackSize = stackSize;
+
+    def newFrame(self, POIs):
+        return;
+
+    def newPOI(self, POI):
+        return;
+
+    def 

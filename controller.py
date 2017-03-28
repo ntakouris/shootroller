@@ -1,7 +1,9 @@
 import numpy as np
 import cv2
+import model
 
 cam = cv2.Videocamture(0)
+
 
 while(True):
     # camture frame-by-frame
@@ -16,6 +18,8 @@ while(True):
     cv2.imshow('Webcam Feed',gray)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+
 
 # When everything done, release the camture
 cam.release()
