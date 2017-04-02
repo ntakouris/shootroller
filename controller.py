@@ -5,6 +5,7 @@ import os
 import numpy as np
 import cv2
 
+
 #import model
 
 def currentMillis():
@@ -14,6 +15,22 @@ def clear():
     os.system('cls')
 
 cam = cv2.VideoCapture(0)
+
+#lowest possible brightness
+cam.set(cv2.CAP_PROP_BRIGHTNESS, 0)
+
+cam.set(cv2.CAP_PROP_EXPOSURE, 50)
+
+#default contrast is 30, mess with it after laser
+cam.set(cv2.CAP_PROP_CONTRAST, 30)
+
+#with this one you only see lights
+#30-40 would be good for projector,
+#20-30 for lazer
+cam.set(cv2.CAP_PROP_GAIN, 25)
+
+#this may be unnecessary,as well as CAP_PROP_HUE
+cam.set(cv2.CAP_PROP_SATURATION, 40)
 
 frames = 0
 startTime = currentMillis()
@@ -56,7 +73,7 @@ while(True):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Display the resulting frame
-    cv2.imshow('Webcam Feed',gray)
+    #cv2.imshow('Webcam Feed',gray)
 
     if(laserDetected):
         undetectedLaserFrames+=1
