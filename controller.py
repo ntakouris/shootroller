@@ -10,94 +10,69 @@ import os
 import numpy as np
 import cv2
 
-#import model
-
-
-def simulateMouseClick(x,y):
-    win32api.SetCursorPos((x,y))
+# For windows
+def simulateMouseClick(pos):
+    win32api.SetCursorPos(pos)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,0,0)
-
 
 def currentMillis():
     return int(round(time.time() * 1000))
 
-def clear():
-    os.system('cls')
-
+# Initialize first webcam with parameters
+# sufficient to detect brightness change 
+# on an already bright surface, when a laser hits it
 cam = cv2.VideoCapture(0)
 
-#lowest possible brightness
 cam.set(cv2.CAP_PROP_BRIGHTNESS, 10)
-
 cam.set(cv2.CAP_PROP_EXPOSURE, 60)
-
-#default contrast is 30, mess with it after laser
-cam.set(cv2.CAP_PROP_CONTRAST, 40)
-
-#with this one you only see lights
-#30-40 would be good for projector,
-#20-30 for lazer
-cam.set(cv2.CAP_PROP_GAIN, 25)
-
-#this may be unnecessary,as well as CAP_PROP_HUE
+cam.set(cv2.CAP_PROP_CONTRAST, 40) # 30 -> default
+cam.set(cv2.CAP_PROP_GAIN, 25) # 30~40 -> projector/screen, 20~30 -> laser
 cam.set(cv2.CAP_PROP_SATURATION, 40)
 
-frames = 0
-startTime = currentMillis()
-
-class OutputData:
-    fps = 0;
-    
-    somethingChanged = True
-
-    @staticmethod
-    def setFPS(frames):
-        if(frames == OutputData.fps):
-            return
-        OutputData.fps = frames
-        OutputData.somethingChanged = True
-
-    @staticmethod
-    def print():
-        if(not OutputData.somethingChanged):
-            return
-        print("* =========== *")
-        print("FPS: {}".format(OutputData.fps))
-        OutputData.somethingChanged = False
-
+totalFrames = 0
 
 undetectedLaserFrames = 0
-laserInactivityThreshold = 3 #frames
 
-laserOn = False
+laserInactivityThreshold = 5 #frames
+maxValueThreshold = 120 # Brightness for laser
 
-calX = -1
-calY = -1
-calW = -1
-calH = -1
+laserPrev = False
 
-# define range of blue color in HSV
-lower_color = np.array([110,50,50])
-upper_color = np.array([130,255,255])
+# Calibration corners
+topLeft = (-1,-1)
+botRight = (-1, -1)
 
+def isCalibrated():
+    return False
 
 while(True):
-
     ret, frame = cam.read()
-    frames+=1;
 
-    # Our operations on the frame come here
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    
-    #mask = cv2.inRange(hsv, lower_color, upper_color)
-    #res = cv2.bitwise_and(hsv, hsv, mask = mask)
-    # Display the resulting frame
-    cv2.imshow('Stuff',hsv)
+
+    h,s,v = cv2.split(hsv)
+    (minValue, maxValue, minLoc, maxLoc) = cv2.minMaxLoc(v)
+
+    if(maxValue > maxValueThreshold): # Possible laser at 'maxLoc' 
+        if(laserPrev == False and undetectedLaserFrames >= laserInactivityThreshold): # Shot
+            if(isCalibrated()): # Calibration is negative edge triggered, so no else
+                simulateMouseClick(maxLoc)
+
+        laserPrev = True
+        undetectedLaserFrames = 0
+
+    else: # If no laser
+        if(laserPrev == True): # Negative edge calibration trigger
+            if(not isCalibrated()):
+                #Calibrate 
+
+        laserPrev = False
+        undetectedLaserFrames += 1
 
     pointX = -1
     pointY = -1
-    laserDetected = False
+
     
     if(laserDetected):
         if(undetectedLaserFrames > laserInactivityThreshold):
@@ -116,23 +91,9 @@ while(True):
             tarY = (1080 / calY) * (pointY - calY)
 
             #simulateMouseClick(tarX, tarY)
+
             
-            laserOn = False
-            
-
-    if(not laserDetected):
-        undetectedLaserFrames+=1
-
-    timePassed = currentMillis() - startTime
-
-    if(timePassed > 1000):
-        OutputData.setFPS(frames)
-        frames = 0
-        startTime = currentMillis()
-
-    OutputData.print()
-
-    cv2.circle(frame, (100,100), 5 , (255,255,255), -1)
+    # Draw calibration edges        
 
     if(not (calX == -1 or calY == -1)):
        cv2.circle(frame, (calX, calY), 5, (0,255,0), -1)
@@ -140,15 +101,18 @@ while(True):
         cv2.circle(frame, (calX + calW, calY), 5, (0,255,0), -1)
         cv2.circle(frame, (calX + calW, calY + calH), 5, (0,255,0), -1)
         cv2.circle(frame, (calX, calY + calH), 5, (0,255,0), -1)
-
         
-    cv2.imshow('Normal Webcam Feed',frame)
+    cv2.imshow('Configured Webcam', frame)
+    cv2.imshow('HSV', hsv)
+    cv2.imshow('V - Brightness', v)
 
+    totalFrames += 1
+
+    # Till key 'q' is pressed
     if cv2.waitKey(1) == ord('q'):
 	    break
 
 
-
-# When everything done, release the camture
+# Cleanup
 cam.release()
 cv2.destroyAllWindows()
