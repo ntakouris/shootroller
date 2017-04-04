@@ -37,14 +37,37 @@ undetectedLaserFrames = 0
 laserInactivityThreshold = 5 #frames
 maxValueThreshold = 120 # Brightness for laser
 
+# On the PC
+screenWidth = 1920
+screenHeight = 1080
+
+# Debug calibration circles color 
+calibrationColor = (0, 255, 0)
+
+maxLocPrev = (-1,-1)
 laserPrev = False
 
 # Calibration corners
 topLeft = (-1,-1)
 botRight = (-1, -1)
 
+def isTopCalibrated():
+    return topLeft[0] != -1 and topLeft[1] != -1
+
+def isBotCalibrated():
+    return botRight[0] != -1 and botRight[1] != -1
+
 def isCalibrated():
     return False
+
+def isPrevMaxLocValid():
+    return maxLocPrev[0] != -1 and maxLocPrev[1] != -1 
+
+def getCalibratedWidth():
+    return botRight[0] - topLeft[0]
+
+def getCalibratedHeight():
+    return botRight[1] - topLeft[1]
 
 while(True):
     ret, frame = cam.read()
@@ -56,51 +79,41 @@ while(True):
 
     if(maxValue > maxValueThreshold): # Possible laser at 'maxLoc' 
         if(laserPrev == False and undetectedLaserFrames >= laserInactivityThreshold): # Shot
+            print("Laser engaged")
             if(isCalibrated()): # Calibration is negative edge triggered, so no else
-                simulateMouseClick(maxLoc)
+                locX = (screenWidth / getCalibratedWidth() ) * (maxLoc[0] - topLeft[0])
+                locY = (screenHeight / getCalibratedHeight() ) * (maxLoc[1] - topLeft[1])
+                simulateMouseClick((locX, locY)))
 
         laserPrev = True
         undetectedLaserFrames = 0
 
     else: # If no laser
         if(laserPrev == True): # Negative edge calibration trigger
+            print("Laser disengaged")
             if(not isCalibrated()):
-                #Calibrate 
+                print("Not fully calibrated,")
+                if(not isPrevMaxLocValid()):
+                    print("Can't calibrate, prevMaxLoc is not valid")
+                    continue # ?
+                else: # Calibrate
+                if(not isTopCalibrated()):
+                    print("Calibrating Top Left Corner")
+                    topLeft = maxLocPrev
+                else if(not isBotCalibrated()):
+                    print("Calibrating Bot Left Corner")
+                    botRight = maxLocPrev
 
         laserPrev = False
         undetectedLaserFrames += 1
-
-    pointX = -1
-    pointY = -1
-
-    
-    if(laserDetected):
-        if(undetectedLaserFrames > laserInactivityThreshold):
-            #State Change: Shot complete
-            if(calX == -1 and calY == -1):
-                calX = 0
-                calY = 0
-                continue
-
-            if(calW == -1 and calH == -1):
-                calW = 0 - calX
-                calH = 0 - calY
-                continue
-
-            tarX = (1920 / calW) * (pointX - calX)
-            tarY = (1080 / calY) * (pointY - calY)
-
-            #simulateMouseClick(tarX, tarY)
-
-            
-    # Draw calibration edges        
-
-    if(not (calX == -1 or calY == -1)):
-       cv2.circle(frame, (calX, calY), 5, (0,255,0), -1)
-    if(not (calW == -1 or calH == -1)):
-        cv2.circle(frame, (calX + calW, calY), 5, (0,255,0), -1)
-        cv2.circle(frame, (calX + calW, calY + calH), 5, (0,255,0), -1)
-        cv2.circle(frame, (calX, calY + calH), 5, (0,255,0), -1)
+       
+    # Draw calibration edges   
+    if(isTopCalibrated()):
+        cv2.circle(frame, topLeft, 5 , calibrationColor, -1)
+    if(isBotCalibrated()): # Top would be already calibrated
+        cv2.circle(frame, botRight, 5, (0,255,0), -1)
+        cv2.circle(frame, (topLeft[0] + getCalibratedWidth() , topLeft[1]), 5, calibrationColor, -1) # Top Right 
+        cv2.circle(frame, (topLeft[0], botRight[1]), 5, calibrationColor, -1) # Bot Left
         
     cv2.imshow('Configured Webcam', frame)
     cv2.imshow('HSV', hsv)
