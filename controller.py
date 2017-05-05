@@ -83,7 +83,7 @@ while(True):
             if(isCalibrated()): # Calibration is negative edge triggered, so no else
                 locX = (screenWidth / getCalibratedWidth() ) * (maxLoc[0] - topLeft[0])
                 locY = (screenHeight / getCalibratedHeight() ) * (maxLoc[1] - topLeft[1])
-                simulateMouseClick((locX, locY)))
+                simulateMouseClick((locX, locY))
 
         laserPrev = True
         undetectedLaserFrames = 0
@@ -97,12 +97,12 @@ while(True):
                     print("Can't calibrate, prevMaxLoc is not valid")
                     continue # ?
                 else: # Calibrate
-                if(not isTopCalibrated()):
-                    print("Calibrating Top Left Corner")
-                    topLeft = maxLocPrev
-                else if(not isBotCalibrated()):
-                    print("Calibrating Bot Left Corner")
-                    botRight = maxLocPrev
+                    if(not isTopCalibrated()):
+                        print("Calibrating Top Left Corner")
+                        topLeft = maxLocPrev
+                    elif(not isBotCalibrated()):
+                        print("Calibrating Bot Left Corner")
+                        botRight = maxLocPrev
 
         laserPrev = False
         undetectedLaserFrames += 1
