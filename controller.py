@@ -58,7 +58,7 @@ def isBotCalibrated():
     return botRight[0] != -1 and botRight[1] != -1
 
 def isCalibrated():
-    return False
+    return isTopCalibrated() and isBotCalibrated()
 
 def isPrevMaxLocValid():
     return maxLocPrev[0] != -1 and maxLocPrev[1] != -1 
@@ -77,20 +77,22 @@ while(True):
     h,s,v = cv2.split(hsv)
     (minValue, maxValue, minLoc, maxLoc) = cv2.minMaxLoc(v)
 
-    if(maxValue > maxValueThreshold): # Possible laser at 'maxLoc' 
-        if(laserPrev == False and undetectedLaserFrames >= laserInactivityThreshold): # Shot
-            print("Laser engaged")
+    #print("Undetected laser frames: {}".format(undetectedLaserFrames))
+
+    if(maxValue > maxValueThreshold): # Possible laser at 'maxLoc'
+        #print("Possible laser at maxLoc")
+        if(laserPrev == False): #and undetectedLaserFrames >= laserInactivityThreshold): # Shot
+            print("Laser -> ON")
+            laserPrev = True
             if(isCalibrated()): # Calibration is negative edge triggered, so no else
                 locX = (screenWidth / getCalibratedWidth() ) * (maxLoc[0] - topLeft[0])
                 locY = (screenHeight / getCalibratedHeight() ) * (maxLoc[1] - topLeft[1])
                 simulateMouseClick((locX, locY))
-
-        laserPrev = True
-        undetectedLaserFrames = 0
-
+        
+        #undetectedLaserFrames = 0
     else: # If no laser
         if(laserPrev == True): # Negative edge calibration trigger
-            print("Laser disengaged")
+            print("Laser -> OFF")
             if(not isCalibrated()):
                 print("Not fully calibrated,")
                 if(not isPrevMaxLocValid()):
@@ -105,9 +107,12 @@ while(True):
                         botRight = maxLocPrev
 
         laserPrev = False
-        undetectedLaserFrames += 1
+        #undetectedLaserFrames += 1
+
+    if(laserPrev == True):
+        maxLocPrev = maxLoc;
        
-    # Draw calibration edges   
+    # Draw calibration edges on actual webcam
     if(isTopCalibrated()):
         cv2.circle(frame, topLeft, 5 , calibrationColor, -1)
     if(isBotCalibrated()): # Top would be already calibrated
