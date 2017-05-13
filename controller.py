@@ -37,7 +37,7 @@ totalFrames = 0
 undetectedLaserFrames = 0
 
 laserInactivityThreshold = 5 #frames
-maxValueThreshold = 120 # Brightness for laser
+maxValueThreshold = 140 # Brightness for laser
 
 # On the PC
 screenWidth = 1920
@@ -76,6 +76,10 @@ while(True):
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
+    # find the colors within the specified boundaries and apply mask
+    mask = cv2.inRange(hsv, np.array([102,70,36]), np.array([143,255,255])) #we only want purple
+    hsv = cv2.bitwise_and(hsv, hsv, mask = mask)
+    
     h,s,v = cv2.split(hsv)
     (minValue, maxValue, minLoc, maxLoc) = cv2.minMaxLoc(v)
 
@@ -112,7 +116,7 @@ while(True):
         #undetectedLaserFrames += 1
 
     if(laserPrev == True):
-        maxLocPrev = maxLoc;
+        maxLocPrev = maxLoc
        
     # Draw calibration edges on actual webcam
     if(isTopCalibrated()):
@@ -123,8 +127,8 @@ while(True):
         cv2.circle(frame, (topLeft[0], botRight[1]), 5, calibrationColor, -1) # Bot Left
         
     cv2.imshow('Configured Webcam', frame)
-    cv2.imshow('HSV', hsv)
-    cv2.imshow('V - Brightness', v)
+    #cv2.imshow('HSV', hsv) # Masked HSV won't show a proper image
+    cv2.imshow('V - Brightness', v) # Useful but will ditch in future
 
     totalFrames += 1
 
